@@ -1,0 +1,113 @@
+USES "UI", "file"
+
+#include "OpenGLProviderInfo.tbasicU"
+
+begin controlId
+  %btnClose, %btnSave 
+  
+  %edtRenderer, %edtVendor, %edtOpenGL
+  %listExtensions, %listTypes
+  
+  %lblOpenGLStatus
+end controlId
+
+function tbMain()
+  
+  dword hDlg
+
+  dialog new 0, "OpenGL Report",-1,-1, 300, 285, %WS_POPUP | %WS_VISIBLE | %WS_CLIPCHILDREN | %WS_CAPTION | %WS_SYSMENU | %WS_MINIMIZEBOX To hDlg
+    
+    control add label, hDlg, -1, "Renderer", 5, 5, 60, 14
+      control add textbox, hDlg, %edtRenderer, , 65, 5, 230, 14
+  
+    control add label, hDlg, -1, "Vendor", 5, 20, 60, 14
+      control add textbox, hDlg, %edtVendor, , 65, 20, 230, 14
+        
+    control add label, hDlg, -1, "OpenGL", 5, 35, 60, 14
+      control add textbox, hDlg, %edtOpenGL, , 65, 35, 230, 14
+  
+    control add label, hDlg, %lblOpenGLStatus, , 65, 50, 230, 14, %SS_CENTER | %SS_CENTERIMAGE
+      
+    control add line, hDlg, -1, "", 5, 70, 290, 1
+    
+    control add label, hDlg, -1, "Choose extension type", 5, 80, 100, 14
+    
+    control add listbox, hDlg, %listTypes, , 5, 95, 50, 160      
+    control add listbox, hDlg, %listExtensions, , 55, 95, 240, 160
+      
+    control add line, hDlg, -1, "", 5, 255, 290, 1
+    
+    control add button, hDlg, %btnSave, "Save report", 5, 265, 60, 14
+    control add button, hDlg, %btnClose, "Exit", 235, 265, 60, 14
+   
+  dialog show modal hDlg, call cbMain
+end function  
+ 
+callback function cbMain()
+  static info as OpenGLProviderInfo()
+  
+  select case callback_message    
+    case %wm_initDialog
+      SetInitialValues(callback_handle, info)
+      
+    case %wm_command
+      
+      select case callback_control
+
+        case %btnSave
+          if callback_control_message = %BN_CLICKED then
+            string fileName = app_sourcePath + "OpenGL_Report.txt" 
+            
+            file_save(fileName, "Vendor: " + info.vendor + $CRLF + 
+                                "Renderer: " + info.renderer + $CRLF + 
+                                "OpenGL: " + info.apiVersion + $CRLF + 
+                                "Extensions (" + str$(parseCount(info.extensions, ","))+" ):" + $CRLF + replace$(info.extensions, ",", $CRLF))
+                                                          
+            msgbox (callback_handle, "Report saved to " + fileName, %MB_ICONINFORMATION | %MB_OK, "Info")         
+          end if                 
+         
+        case %listTypes
+          if callback_control_message = %LBN_SELCHANGE then           
+            string extensionType
+            
+            listbox get text callback_handle, %listTypes to extensionType
+            listbox reset callback_handle, %listExtensions
+            
+            if extensionType = "<All>" then
+              listbox add callback_handle, %listExtensions, info.extensions using ","
+            else
+              listbox add callback_handle, %listExtensions, info.extensionsOfType(extensionType) using ","
+            end if
+                
+            listbox select callback_handle, %listExtensions, 1            
+          end if  
+          
+        case %btnClose
+          if callback_control_message = %BN_CLICKED then
+            dialog end callback_handle
+          end if  
+          
+      end select    
+  end select 
+  
+end function
+
+function SetInitialValues(hDlg as DWord, info as OpenGLProviderInfo)
+  control set text hDlg, %edtRenderer, info.renderer
+  control set text hDlg, %edtVendor, info.vendor
+  control set text hDlg, %edtOpenGL, info.apiVersion
+  
+  if instr(ucase$(info.vendor), "MICROSOFT")  THEN
+    control set text hDlg, %lblOpenGLStatus, " ( SOFTWARE EMULATION )"
+    control set color hDlg, %lblOpenGLStatus, rgb(255, 255, 0), rgb(128, 0, 0)
+  else
+    control set text hDlg, %lblOpenGLStatus, "OpenGL is properly installed"  
+    control set color hDlg, %lblOpenGLStatus, rgb(255, 255, 0), rgb(0, 128, 0)
+  end if
+  
+  listbox add hDlg, %listTypes, "<All>," + info.extensionTypes using ","
+  listbox select hDlg, %listTypes, 1
+
+  listbox add hDlg, %listExtensions, info.extensions using ","
+  listbox select hDlg, %listExtensions, 1
+end function

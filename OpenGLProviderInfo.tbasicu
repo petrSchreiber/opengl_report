@@ -1,0 +1,112 @@
+uses "TBGL"
+
+%GL_VENDOR                          = &H1F00
+%GL_RENDERER                        = &H1F01
+%GL_VERSION                         = &H1F02
+%GL_EXTENSIONS                      = &H1F03
+
+declare function glGetString lib "opengl32.dll" alias "glGetString" (byVal nName as DWord) as asciiz ptr
+
+type OpenGLProviderInfo
+  private
+  
+  _vendor          as string
+  _renderer        as string
+  _apiVersion      as string
+  _extensions      as string
+  _extensionTypes  as string
+  
+  function _GetVendor() as string
+    dim vendor as asciiz * 255 at glGetString(%GL_VENDOR)
+    return vendor
+  end function
+  
+  function _GetRenderer() as string
+    dim renderer as asciiz * 255 at glGetString(%GL_RENDERER)
+    return renderer
+  end function
+  
+  function _GetVersion() as string
+    dim oglVersion as asciiz * 255 at glGetString(%GL_VERSION)
+    return oglVersion
+  end function
+  
+  function _GetExtensions() as string  
+    string extensions = peek$(asciiz, glGetString(%GL_EXTENSIONS), 16384)
+    extensions = trim$(extensions, $spc)
+    extensions = replace$(extensions, " ", ",")
+    
+    return ucase$(extensions)
+  end function
+  
+  function _GetExtensionTypes() as string
+    string extensions()
+    parse(me._GetExtensions(), extensions, ",")
+    long i
+
+    string detectedType, extensionTypes
+    for i = 1 to countOf(extensions)
+      detectedType = parse$(extensions(i), "_", 2) + ","
+      if instr(extensionTypes, detectedType) = 0 then
+        extensionTypes += detectedType
+      end if
+    next
+    extensionTypes = rtrim$(extensionTypes, ",")
+    
+    return extensionTypes
+  end function  
+  
+  public
+  
+  function _Create()
+    tbgl_createWindowEx("TBGL", 1, 1, 32, %TBGL_WS_WINDOWED) 
+    tbgl_showWindow  
+    
+    me._vendor         = me._GetVendor()
+    me._renderer       = me._GetRenderer()
+    me._apiVersion     = me._GetVersion()
+    me._extensions     = me._GetExtensions()
+    me._extensionTypes = me._GetExtensionTypes()
+    
+    tbgl_destroyWindow
+  end function
+  
+  '
+  
+  function Vendor() as string
+    return me._vendor
+  end function
+  
+  function Renderer() as string
+    return me._renderer
+  end function
+
+  function APIVersion() as string
+    return me._apiVersion
+  end function
+  
+  function Extensions() as string
+    return me._extensions
+  end function
+
+  function ExtensionTypes() as string
+    return me._extensionTypes
+  end function
+  
+  function ExtensionsOfType(extensionType as string) as string
+    long i
+    string extensions()
+    parse(me._extensions, extensions, ",")
+    
+    string output
+    for i = 1 to countOf(extensions)
+      if parse$(extensions(i), "_", 2) = extensionType then
+        output += extensions(i) + "," 
+      end if
+    next
+    output = rtrim$(output, ",")
+    
+    return output
+  end function
+  
+end type
