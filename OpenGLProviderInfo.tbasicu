@@ -10,28 +10,28 @@ declare function glGetString lib "opengl32.dll" alias "glGetString" (byVal nName
 type OpenGLProviderInfo
   private
   
-  _vendor          as string
-  _renderer        as string
-  _apiVersion      as string
-  _extensions      as string
-  _extensionTypes  as string
+  cachedVendor          as string
+  cachedRenderer        as string
+  cachedApiVersion      as string
+  cachedExtensions      as string
+  cachedExtensionTypes  as string
   
-  function _GetVendor() as string
+  function getVendor() as string
     dim vendor as asciiz * 255 at glGetString(%GL_VENDOR)
     return vendor
   end function
   
-  function _GetRenderer() as string
+  function getRenderer() as string
     dim renderer as asciiz * 255 at glGetString(%GL_RENDERER)
     return renderer
   end function
   
-  function _GetVersion() as string
+  function getVersion() as string
     dim oglVersion as asciiz * 255 at glGetString(%GL_VERSION)
     return oglVersion
   end function
   
-  function _GetExtensions() as string  
+  function getExtensions() as string  
     string extensions = peek$(asciiz, glGetString(%GL_EXTENSIONS), 16384)
     extensions = trim$(extensions, $spc)
     extensions = replace$(extensions, " ", ",")
@@ -39,9 +39,9 @@ type OpenGLProviderInfo
     return ucase$(extensions)
   end function
   
-  function _GetExtensionTypes() as string
+  function getExtensionTypes() as string
     string extensions()
-    parse(me._GetExtensions(), extensions, ",")
+    parse(me.getExtensions(), extensions, ",")
     long i
 
     string detectedType, extensionTypes
@@ -62,11 +62,11 @@ type OpenGLProviderInfo
     tbgl_createWindowEx("TBGL", 1, 1, 32, %TBGL_WS_WINDOWED) 
     tbgl_showWindow  
     
-    me._vendor         = me._GetVendor()
-    me._renderer       = me._GetRenderer()
-    me._apiVersion     = me._GetVersion()
-    me._extensions     = me._GetExtensions()
-    me._extensionTypes = me._GetExtensionTypes()
+    me.cachedVendor         = me.getVendor()
+    me.cachedRenderer       = me.getRenderer()
+    me.cachedApiVersion     = me.getVersion()
+    me.cachedExtensions     = me.getExtensions()
+    me.cachedExtensionTypes = me.getExtensionTypes()
     
     tbgl_destroyWindow
   end function
@@ -74,29 +74,29 @@ type OpenGLProviderInfo
   '
   
   function Vendor() as string
-    return me._vendor
+    return me.cachedVendor
   end function
   
   function Renderer() as string
-    return me._renderer
+    return me.cachedRenderer
   end function
 
   function APIVersion() as string
-    return me._apiVersion
+    return me.cachedApiVersion
   end function
   
   function Extensions() as string
-    return me._extensions
+    return me.cachedExtensions
   end function
 
   function ExtensionTypes() as string
-    return me._extensionTypes
+    return me.cachedExtensionTypes
   end function
   
   function ExtensionsOfType(extensionType as string) as string
     long i
     string extensions()
-    parse(me._extensions, extensions, ",")
+    parse(me.cachedExtensions, extensions, ",")
     
     string output
     for i = 1 to countOf(extensions)
